@@ -331,7 +331,7 @@
           <div class="eyebrow">Visualização eleitoral</div>
           <h1>ELEIÇÕES 2022 EM GRÁFICOS</h1>
           <p class="subtitle">
-            Painel apresenta os principais resultados do pleito.
+            Painel apresenta os principais resultados do pleito
           </p>
         </div>
       </section>
@@ -371,9 +371,9 @@
       <h2 class="section-title">2. Votos por partido</h2>
       <section class="chart-card">
         <h3 class="card-title">Votos por partido</h3>
-        <div class="filters" id="officeTabs"></div>
+        <div class="filters" id="officeTabs" style="margin: 8px 0 14px;"></div>
         <p class="card-text" id="votesByPartyText">
-          Selecione o cargo para visualizar a soma dos votos por partido em 2022. Números fictícios para demonstração.
+          Soma dos votos nominais recebidos por partido para deputado federal em 2022. Números fictícios para demonstração
         </p>
         <div class="chart-wrap" style="min-height: 900px;">
           <canvas id="votesByPartyChart"></canvas>
@@ -784,7 +784,7 @@
       const text = document.getElementById('legislativeCardText');
       const note = document.getElementById('legislativeFooterNote');
       if (title) title.textContent = `Cadeiras por partido — ${config.label}`;
-      if (text) text.textContent = 'Distribuição partidária e variação 2022-2018.';
+      if (text) text.textContent = 'Distribuição partidária e variação 2022-2018';
       if (note) note.textContent = currentLegislativeTab === 'chamber'
         ? 'Aba atual: Câmara dos Deputados. A tabela compara 2018 e 2022.'
         : 'Aba atual: Senado Federal. A tabela compara 2018 e 2022.';
@@ -1154,4 +1154,3 @@
   </script>
 </body>
 </html>
-
