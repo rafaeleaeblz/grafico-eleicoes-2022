@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Eleições 2022 — Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --blue: #0b4a8b;
+      --orange: #f97316;
+      --orange-soft: rgba(249, 115, 22, 0.14);
+      --blue-soft: rgba(11, 74, 139, 0.08);
+      --border: rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .container {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 24px 0 8px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .hero-card, .stat-card, .chart-card, .table-card {
+      padding: 20px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .hero-card {
+      padding: 28px 32px;
+    }
+
+    .hero-clean {
+      background: #ffffff;
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      border-top: 4px solid var(--orange);
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.05;
+      color: var(--blue);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+      max-width: 760px;
+    }
+
+    .hero-side {
+      display: none;
+    }
+
+    .stat-card {
+      padding: 20px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 34px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    main {
+      padding-bottom: 56px;
+    }
+
+    .section-title {
+      margin: 20px 0 16px;
+      font-size: 22px;
+      color: var(--blue);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .filter-chip {
+      background: #ffffff;
+      border: 1px solid rgba(11, 74, 139, 0.14);
+      color: var(--blue);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s ease;
+    }
+
+    .filter-chip:hover,
+    .filter-chip.active {
+      background: var(--orange-soft);
+      border-color: rgba(249, 115, 22, 0.32);
+      color: var(--orange);
+    }
+
+    .assembly-select {
+      appearance: none;
+      border: 1px solid rgba(11, 74, 139, 0.14);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--blue);
+      font-weight: 600;
+      padding: 10px 16px;
+      min-width: 260px;
+      margin-left: 10px;
+      font-size: 15px;
+    }
+
+    .brazil-map-svg-wrap {
+      width: 100%;
+      overflow-x: auto;
+      padding: 8px 0 4px;
+    }
+
+    .brazil-map-svg {
+      width: 100%;
+      min-width: 760px;
+      height: auto;
+      display: block;
+    }
+
+    .map-state-shape {
+      stroke: #ffffff;
+      stroke-width: 2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    .map-state-label {
+      font-size: 16px;
+      font-weight: 800;
+      fill: #1f2937;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .map-state-label.light {
+      fill: #ffffff;
+    }
+
+    .map-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      margin-top: 18px;
+      justify-content: center;
+    }
+
+    .map-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .map-legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .mini-bar-track {
+      width: 86px;
+      margin-left: -10px;
+      height: 18px;
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    
+
+    .chart-card, .table-card {
+      padding: 20px;
+    }
+
+    .card-title {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: var(--blue);
+    }
+
+    .card-text {
+      margin: 0 0 14px;
+      color: #64748b;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      min-height: 360px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--blue);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td.muted {
+      color: var(--muted);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      border-left: 3px solid var(--orange);
+      padding-left: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: rgba(34, 197, 94, 0.12);
+      color: #98f3b9;
+      border: 1px solid rgba(34, 197, 94, 0.22);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 920px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-wrap {
+        min-height: 300px;
+      }
+
+      .hero-card {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <section class="hero-card hero-clean">
+        <div>
+          <div class="eyebrow">Visualização eleitoral</div>
+          <h1>ELEIÇÕES 2022 EM GRÁFICOS</h1>
+          <p class="subtitle">
+            Painel apresenta os principais resultados do pleito.
+          </p>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h2 class="section-title">1. Congresso Nacional</h2>
+      <div class="filters" id="legislativeTabs"></div>
+
+      <section class="chart-card">
+        <h3 class="card-title" id="mainLegislativeChartTitle">Cadeiras por partido — Câmara</h3>
+        <p class="card-text" id="mainLegislativeChartText">Gráfico mostra o partido dominante e a distribuição de cadeiras dos deputados.</p>
+        <div class="chart-wrap">
+          <canvas id="federalSeatsChart"></canvas>
+        </div>
+      </section>
+
+      <section class="table-card" style="margin-top: 20px;">
+        <h3 class="card-title" id="legislativeCardTitle">Cadeiras por partido — Câmara</h3>
+        <p class="card-text" id="legislativeCardText">Distribuição partidária com todos os partidos representados na Câmara dos Deputados.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Partido</th>
+              <th>Cadeiras</th>
+              <th>Participação</th>
+            </tr>
+          </thead>
+          <tbody id="federalSeatsTable"></tbody>
+        </table>
+        <p class="footer-note" id="legislativeFooterNote">Aba inicial: Câmara dos Deputados. Você pode alternar para Senado no seletor acima.</p>
+      </section>
+
+      <h2 class="section-title">2. Deputados federais</h2>
+      <section class="chart-card">
+        <h3 class="card-title">Deputados federais</h3>
+        <p class="card-text">
+          Soma dos votos nominais recebidos por todos os candidatos de cada partido para deputado federal em 2022. Números fictícios para demonstração.
+        </p>
+        <div class="chart-wrap" style="min-height: 900px;">
+          <canvas id="votesByPartyChart"></canvas>
+        </div>
+      </section>
+
+      <h2 class="section-title">3. Governadores eleitos por partido</h2>
+      <section class="chart-card" style="margin-bottom: 20px;">
+        <h3 class="card-title">Vencedores no 1º turno</h3>
+        <p class="card-text">
+          Mapa mostra os Estados pintados pelo partido do governador eleito já na 1ª rodada do pleito. Estados que foram ao 2º turno aparecem em cinza.
+        </p>
+        <div id="governorsMap" class="brazil-map-svg-wrap"></div>
+        <p class="footer-note">Visualização estilizada para apresentação. Estados em cinza indicam disputa decidida apenas no 2º turno.</p>
+      </section>
+
+      <section class="chart-card">
+        <h3 class="card-title">Governadores eleitos por partido no 1º turno</h3>
+        <p class="card-text">
+          Distribuição apenas dos governadores definidos já no 1º turno em 2022, considerando os 26 estados e o Distrito Federal.
+        </p>
+        <p class="footer-note" style="margin-top: 0; margin-bottom: 18px;">
+          <strong id="governorsRunoffHighlight">12 Estados ainda vão eleger governadores no 2º turno.</strong>
+        </p>
+        <div class="chart-wrap">
+          <canvas id="governorsByPartyChart"></canvas>
+        </div>
+      </section>
+
+      <section class="table-card" style="margin-top: 20px;">
+        <h3 class="card-title">Eleitorado governado por partido</h3>
+        <p class="card-text">
+          Soma do eleitorado das unidades da federação em que cada partido venceu a eleição para governador no 1º turno.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Partido</th>
+              <th>Eleitorado somado</th>
+              <th></th>
+              <th>Estados considerados</th>
+            </tr>
+          </thead>
+          <tbody id="governorElectorateTableBody"></tbody>
+        </table>
+        <p class="footer-note">Exemplo: o eleitorado de um partido é a soma do eleitorado dos estados onde ele venceu no 1º turno.</p>
+      </section>
+
+      <h2 class="section-title">4. Deputados estaduais eleitos por assembleia</h2>
+      <div class="filters" style="margin-bottom: 16px;">
+        <label for="assemblySelect" style="font-weight: 700; color: var(--blue);">Escolha a unidade da federação:</label>
+        <select id="assemblySelect" class="assembly-select"></select>
+      </div>
+
+      <div class="grid-2">
+        <section class="chart-card">
+          <h3 class="card-title" id="assemblyChartTitle">Composição partidária da assembleia</h3>
+          <p class="card-text" id="assemblyChartText">Distribuição de cadeiras por partido na assembleia selecionada.</p>
+          <div class="chart-wrap" style="min-height: 420px;">
+            <canvas id="stateAssemblyPieChart"></canvas>
+          </div>
+        </section>
+
+        <section class="table-card">
+          <h3 class="card-title" id="assemblyTableTitle">Partidos eleitos na assembleia</h3>
+          <p class="card-text" id="assemblyTableText">Quantidade de deputados estaduais ou distritais eleitos por partido.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Partido</th>
+                <th>Eleitos</th>
+                <th>Participação</th>
+              </tr>
+            </thead>
+            <tbody id="assemblyTableBody"></tbody>
+          </table>
+          <p class="footer-note" id="assemblyFooterNote">Selecione uma UF para ver a composição da assembleia legislativa correspondente.</p>
+        </section>
+      </div>
+          <h2 class="section-title">5. Histórico de abstenção nas eleições presidenciais</h2>
+      <section class="chart-card">
+        <h3 class="card-title">Abstenção no 1º e no 2º turno</h3>
+        <p class="card-text">
+          Percentual de eleitores aptos que não compareceram às urnas nas eleições presidenciais, da redemocratização até 2022.
+        </p>
+        <div class="chart-wrap">
+          <canvas id="abstentionHistoryChart"></canvas>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const chamberSeats = [
+      { party: 'PL', seats: 99 },
+      { party: 'PT', seats: 68 },
+      { party: 'União', seats: 59 },
+      { party: 'PP', seats: 47 },
+      { party: 'MDB', seats: 42 },
+      { party: 'PSD', seats: 42 },
+      { party: 'Republicanos', seats: 41 },
+      { party: 'PDT', seats: 17 },
+      { party: 'PSB', seats: 14 },
+      { party: 'PSDB', seats: 13 },
+      { party: 'Podemos', seats: 12 },
+      { party: 'PSOL', seats: 12 },
+      { party: 'Avante', seats: 7 },
+      { party: 'PCdoB', seats: 6 },
+      { party: 'PV', seats: 6 },
+      { party: 'PSC', seats: 6 },
+      { party: 'Solidariedade', seats: 5 },
+      { party: 'Patriota', seats: 4 },
+      { party: 'Cidadania', seats: 4 },
+      { party: 'Novo', seats: 3 },
+      { party: 'Pros', seats: 3 },
+      { party: 'Rede', seats: 2 },
+      { party: 'PTB', seats: 1 }
+    ];
+
+    const senateSeats = [
+      { party: 'PL', seats: 13 },
+      { party: 'PSD', seats: 11 },
+      { party: 'MDB', seats: 10 },
+      { party: 'União', seats: 10 },
+      { party: 'PT', seats: 9 },
+      { party: 'PP', seats: 7 },
+      { party: 'PSB', seats: 4 },
+      { party: 'PSDB', seats: 4 },
+      { party: 'PDT', seats: 3 },
+      { party: 'Podemos', seats: 3 },
+      { party: 'Republicanos', seats: 3 },
+      { party: 'Novo', seats: 1 },
+      { party: 'PSC', seats: 1 },
+      { party: 'PSL', seats: 1 },
+      { party: 'PTB', seats: 1 },
+      { party: 'Rede', seats: 1 }
+    ];
+
+    const legislativeDataMap = {
+      chamber: { label: 'Câmara', fullLabel: 'Câmara dos Deputados', totalSeats: 513, items: chamberSeats },
+      senate: { label: 'Senado', fullLabel: 'Senado Federal', totalSeats: 81, items: senateSeats }
+    };
+
+    const legislativeTabs = [
+      { id: 'chamber', label: 'Câmara' },
+      { id: 'senate', label: 'Senado' }
+    ];
+
+    const federalDeputyCandidates = [
+      { party: 'PL', votes: 4200000 }, { party: 'PL', votes: 3900000 }, { party: 'PL', votes: 3600000 }, { party: 'PL', votes: 3100000 }, { party: 'PL', votes: 2800000 },
+      { party: 'PT', votes: 4100000 }, { party: 'PT', votes: 3500000 }, { party: 'PT', votes: 3200000 }, { party: 'PT', votes: 2800000 }, { party: 'PT', votes: 2300000 },
+      { party: 'PSD', votes: 3000000 }, { party: 'PSD', votes: 2700000 }, { party: 'PSD', votes: 2500000 }, { party: 'PSD', votes: 2000000 }, { party: 'PSD', votes: 1800000 },
+      { party: 'MDB', votes: 2900000 }, { party: 'MDB', votes: 2600000 }, { party: 'MDB', votes: 2400000 }, { party: 'MDB', votes: 2100000 }, { party: 'MDB', votes: 1800000 },
+      { party: 'PP', votes: 2900000 }, { party: 'PP', votes: 2500000 }, { party: 'PP', votes: 2300000 }, { party: 'PP', votes: 2000000 }, { party: 'PP', votes: 1800000 },
+      { party: 'Republicanos', votes: 2600000 }, { party: 'Republicanos', votes: 2400000 }, { party: 'Republicanos', votes: 2200000 }, { party: 'Republicanos', votes: 1900000 }, { party: 'Republicanos', votes: 1700000 },
+      { party: 'União', votes: 2600000 }, { party: 'União', votes: 2300000 }, { party: 'União', votes: 2100000 }, { party: 'União', votes: 1800000 }, { party: 'União', votes: 1600000 },
+      { party: 'PSB', votes: 2200000 }, { party: 'PSB', votes: 1900000 }, { party: 'PSB', votes: 1800000 }, { party: 'PSB', votes: 1700000 }, { party: 'PSB', votes: 1500000 },
+      { party: 'PDT', votes: 2200000 }, { party: 'PDT', votes: 1800000 }, { party: 'PDT', votes: 1700000 }, { party: 'PDT', votes: 1600000 }, { party: 'PDT', votes: 1500000 },
+      { party: 'PSDB', votes: 1800000 }, { party: 'PSDB', votes: 1700000 }, { party: 'PSDB', votes: 1600000 }, { party: 'PSDB', votes: 1500000 }, { party: 'PSDB', votes: 1400000 },
+      { party: 'Podemos', votes: 1000000 }, { party: 'Podemos', votes: 920000 }, { party: 'Podemos', votes: 860000 },
+      { party: 'PSOL', votes: 980000 }, { party: 'PSOL', votes: 910000 }, { party: 'PSOL', votes: 830000 },
+      { party: 'Avante', votes: 720000 }, { party: 'Avante', votes: 610000 },
+      { party: 'PCdoB', votes: 690000 }, { party: 'PCdoB', votes: 580000 },
+      { party: 'PV', votes: 670000 }, { party: 'PV', votes: 560000 },
+      { party: 'PSC', votes: 650000 }, { party: 'PSC', votes: 540000 },
+      { party: 'Solidariedade', votes: 610000 }, { party: 'Solidariedade', votes: 490000 },
+      { party: 'Patriota', votes: 480000 }, { party: 'Patriota', votes: 390000 },
+      { party: 'Cidadania', votes: 470000 }, { party: 'Cidadania', votes: 380000 },
+      { party: 'Novo', votes: 420000 }, { party: 'Novo', votes: 320000 },
+      { party: 'Pros', votes: 410000 }, { party: 'Pros', votes: 310000 },
+      { party: 'Rede', votes: 260000 }, { party: 'Rede', votes: 190000 },
+      { party: 'PTB', votes: 200000 }, { party: 'PTB', votes: 130000 },
+      { party: 'AGIR', votes: 180000 }, { party: 'AGIR', votes: 120000 },
+      { party: 'DC', votes: 170000 }, { party: 'DC', votes: 110000 },
+      { party: 'PCB', votes: 85000 }, { party: 'PCO', votes: 28000 }, { party: 'PMB', votes: 145000 }, { party: 'PMN', votes: 132000 }, { party: 'PRTB', votes: 126000 }, { party: 'PSTU', votes: 47000 }, { party: 'UP', votes: 52000 }
+    ];
+
+    const governorsByParty = [
+      { party: 'União', value: 4 },
+      { party: 'MDB', value: 3 },
+      { party: 'PSB', value: 2 },
+      { party: 'PT', value: 2 },
+      { party: 'PP', value: 1 },
+      { party: 'PSD', value: 1 },
+      { party: 'PSDB', value: 1 },
+      { party: 'Republicanos', value: 1 }
+    ].sort((a, b) => b.value - a.value || a.party.localeCompare(b.party, 'pt-BR'));
+
+    const governorsRunoffCount = 12;
+
+    const electorateByUF = {
+      AC: 588433, AL: 2392352, AM: 2593274, BA: 11430634, DF: 2211078, ES: 2976643, GO: 4870354,
+      MA: 5029061, MS: 1878781, MT: 2585480, PI: 2504868, PR: 8454781, RO: 1177462, RR: 366240, TO: 1172029
+    };
+
+    const governorFirstTurnWinners = {
+      AC: { party: 'União', firstTurn: true }, AL: { party: 'MDB', firstTurn: true }, AM: { party: 'União', firstTurn: true }, AP: { party: 'MDB', firstTurn: false },
+      BA: { party: 'PT', firstTurn: true }, CE: { party: 'PT', firstTurn: false }, DF: { party: 'MDB', firstTurn: true }, ES: { party: 'PSB', firstTurn: true },
+      GO: { party: 'União', firstTurn: true }, MA: { party: 'PSB', firstTurn: true }, MG: { party: 'Novo', firstTurn: false }, MS: { party: 'PSDB', firstTurn: true },
+      MT: { party: 'União', firstTurn: true }, PA: { party: 'MDB', firstTurn: false }, PB: { party: 'PSB', firstTurn: false }, PE: { party: 'PSDB', firstTurn: false },
+      PI: { party: 'PT', firstTurn: true }, PR: { party: 'PSD', firstTurn: true }, RJ: { party: 'PL', firstTurn: false }, RN: { party: 'PT', firstTurn: false },
+      RO: { party: 'União', firstTurn: true }, RR: { party: 'PP', firstTurn: true }, RS: { party: 'PSDB', firstTurn: false }, SC: { party: 'PL', firstTurn: false },
+      SE: { party: 'PSD', firstTurn: false }, SP: { party: 'Republicanos', firstTurn: false }, TO: { party: 'Republicanos', firstTurn: true }
+    };
+
+    const presidentialAbstentionHistory = [
+      { year: '1989', firstTurn: 11.93, secondTurn: 14.39 },
+      { year: '1994', firstTurn: 17.77, secondTurn: null },
+      { year: '1998', firstTurn: 21.49, secondTurn: null },
+      { year: '2002', firstTurn: 17.74, secondTurn: 20.47 },
+      { year: '2006', firstTurn: 16.75, secondTurn: 18.99 },
+      { year: '2010', firstTurn: 18.12, secondTurn: 21.50 },
+      { year: '2014', firstTurn: 19.39, secondTurn: 21.10 },
+      { year: '2018', firstTurn: 20.32, secondTurn: 21.29 },
+      { year: '2022', firstTurn: 20.95, secondTurn: 20.59 }
+    ];
+
+    const assemblyDataByUF = {
+      AC: { name: 'Acre', type: 'Assembleia Legislativa', seats: 24, parties: { PP: 4, MDB: 4, PL: 3, PT: 2, PSD: 2, União: 2, PSB: 2, PDT: 2, Republicanos: 1, PCdoB: 1, Podemos: 1 } },
+      AL: { name: 'Alagoas', type: 'Assembleia Legislativa', seats: 27, parties: { MDB: 6, PP: 5, PL: 4, União: 3, PT: 2, Republicanos: 2, PDT: 2, PSD: 1, PSB: 1, Podemos: 1 } },
+      AM: { name: 'Amazonas', type: 'Assembleia Legislativa', seats: 24, parties: { União: 5, PL: 4, MDB: 3, Avante: 3, PSD: 2, PT: 2, PP: 2, Republicanos: 1, PDT: 1, Podemos: 1 } },
+      AP: { name: 'Amapá', type: 'Assembleia Legislativa', seats: 24, parties: { União: 5, PL: 4, PSD: 3, MDB: 3, PDT: 2, PP: 2, Republicanos: 2, PT: 1, PSB: 1, Podemos: 1 } },
+      BA: { name: 'Bahia', type: 'Assembleia Legislativa', seats: 63, parties: { PT: 12, União: 10, PSD: 8, PP: 7, MDB: 6, PL: 6, PSB: 4, PDT: 4, Republicanos: 3, Avante: 2, PCdoB: 1 } },
+      CE: { name: 'Ceará', type: 'Assembleia Legislativa', seats: 46, parties: { PT: 9, PDT: 8, União: 6, PSB: 5, MDB: 4, PP: 4, PSD: 4, PL: 3, Republicanos: 1, PCdoB: 1, PV: 1 } },
+      DF: { name: 'Distrito Federal', type: 'Câmara Legislativa', seats: 24, parties: { MDB: 4, PL: 4, União: 3, PT: 3, PSD: 2, PP: 2, Republicanos: 2, PSB: 1, PDT: 1, Podemos: 1, Novo: 1 } },
+      ES: { name: 'Espírito Santo', type: 'Assembleia Legislativa', seats: 30, parties: { PL: 6, PP: 5, MDB: 4, PSD: 3, Republicanos: 3, União: 3, PT: 2, PDT: 2, PSB: 1, Podemos: 1 } },
+      GO: { name: 'Goiás', type: 'Assembleia Legislativa', seats: 41, parties: { União: 8, PL: 7, MDB: 6, PP: 4, PSD: 4, Republicanos: 3, PT: 3, PSDB: 2, PDT: 2, PSB: 1, Podemos: 1 } },
+      MA: { name: 'Maranhão', type: 'Assembleia Legislativa', seats: 42, parties: { PSB: 11, PL: 6, PCdoB: 5, MDB: 4, PP: 4, União: 3, PDT: 3, PT: 2, PSD: 2, Republicanos: 1, Podemos: 1 } },
+      MG: { name: 'Minas Gerais', type: 'Assembleia Legislativa', seats: 77, parties: { PL: 14, PT: 12, PSD: 8, União: 8, MDB: 7, PP: 7, Republicanos: 6, PSDB: 4, PDT: 4, PSB: 3, Novo: 2, Avante: 1, Podemos: 1 } },
+      MS: { name: 'Mato Grosso do Sul', type: 'Assembleia Legislativa', seats: 24, parties: { PSDB: 6, PP: 4, PL: 4, MDB: 3, PSD: 2, PT: 2, União: 1, Republicanos: 1, PDT: 1 } },
+      MT: { name: 'Mato Grosso', type: 'Assembleia Legislativa', seats: 24, parties: { União: 5, PL: 4, MDB: 3, PSD: 3, Republicanos: 2, PP: 2, PT: 2, PSB: 1, PDT: 1, Podemos: 1 } },
+      PA: { name: 'Pará', type: 'Assembleia Legislativa', seats: 41, parties: { MDB: 10, União: 6, PL: 5, PP: 4, PSD: 4, PT: 3, Republicanos: 3, PDT: 2, PSDB: 2, PSB: 1, Podemos: 1 } },
+      PB: { name: 'Paraíba', type: 'Assembleia Legislativa', seats: 36, parties: { PSB: 8, Republicanos: 7, PP: 4, PL: 4, MDB: 3, União: 3, PSD: 2, PT: 2, PDT: 1, PSDB: 1, Podemos: 1 } },
+      PE: { name: 'Pernambuco', type: 'Assembleia Legislativa', seats: 49, parties: { PSB: 14, PP: 6, PL: 6, União: 5, MDB: 4, PT: 4, Republicanos: 3, PSD: 3, PDT: 2, PSDB: 1, PSOL: 1 } },
+      PI: { name: 'Piauí', type: 'Assembleia Legislativa', seats: 30, parties: { PT: 10, MDB: 6, PSD: 4, PP: 3, PL: 3, União: 2, Republicanos: 1, PDT: 1 } },
+      PR: { name: 'Paraná', type: 'Assembleia Legislativa', seats: 54, parties: { PL: 13, PSD: 8, PP: 7, União: 6, MDB: 5, PT: 4, Republicanos: 4, PDT: 3, PSDB: 2, Podemos: 1, Novo: 1 } },
+      RJ: { name: 'Rio de Janeiro', type: 'Assembleia Legislativa', seats: 70, parties: { PL: 17, PT: 8, União: 7, PP: 7, PSD: 6, MDB: 5, Republicanos: 5, PDT: 4, PSB: 4, PSOL: 3, Avante: 2, Novo: 1, Solidariedade: 1 } },
+      RN: { name: 'Rio Grande do Norte', type: 'Assembleia Legislativa', seats: 24, parties: { União: 5, PL: 4, MDB: 3, PT: 3, PSDB: 2, PP: 2, PSD: 2, Republicanos: 1, PSB: 1, Solidariedade: 1 } },
+      RO: { name: 'Rondônia', type: 'Assembleia Legislativa', seats: 24, parties: { União: 5, PL: 4, PP: 3, Republicanos: 3, MDB: 2, PSD: 2, PT: 1, PDT: 1, Podemos: 1, PSB: 1, PSC: 1 } },
+      RR: { name: 'Roraima', type: 'Assembleia Legislativa', seats: 24, parties: { PP: 5, Republicanos: 4, PSD: 3, MDB: 3, União: 2, PL: 2, PDT: 2, PT: 1, PSB: 1, Podemos: 1 } },
+      RS: { name: 'Rio Grande do Sul', type: 'Assembleia Legislativa', seats: 55, parties: { PT: 12, PP: 8, MDB: 6, Republicanos: 5, PL: 5, PSDB: 4, PDT: 4, União: 4, PSB: 3, PSD: 2, Novo: 1, PSOL: 1 } },
+      SC: { name: 'Santa Catarina', type: 'Assembleia Legislativa', seats: 40, parties: { PL: 11, MDB: 5, PP: 5, PSD: 4, União: 4, Republicanos: 3, PT: 2, PSDB: 2, PDT: 1, PSB: 1, Podemos: 1, Novo: 1 } },
+      SE: { name: 'Sergipe', type: 'Assembleia Legislativa', seats: 24, parties: { PSD: 5, União: 4, MDB: 3, PL: 3, PP: 2, PT: 2, PDT: 2, Republicanos: 1, PSB: 1, Cidadania: 1 } },
+      SP: { name: 'São Paulo', type: 'Assembleia Legislativa', seats: 94, parties: { PL: 19, PT: 18, Republicanos: 8, PSD: 8, MDB: 7, União: 7, PP: 6, PSDB: 5, PSB: 4, PDT: 3, PSOL: 2, Avante: 2, Podemos: 2, Novo: 2, Solidariedade: 1 } },
+      TO: { name: 'Tocantins', type: 'Assembleia Legislativa', seats: 24, parties: { Republicanos: 5, PL: 4, União: 3, PSD: 3, MDB: 2, PP: 2, PT: 1, PDT: 1, PSB: 1, Podemos: 1, PSC: 1 } }
+    };
+
+    const partyColors = {
+      PL: '#2563eb', PT: '#dc2626', União: '#1d4ed8', PP: '#2563eb', MDB: '#16a34a', PSD: '#f97316', Republicanos: '#0f766e', PDT: '#ef4444', PSB: '#f59e0b', PSDB: '#2563eb', Podemos: '#06b6d4', PSOL: '#ca8a04', Avante: '#ea580c', PCdoB: '#b91c1c', PV: '#22c55e', PSC: '#0891b2', Solidariedade: '#7c3aed', Patriota: '#1e40af', Cidadania: '#f97316', Novo: '#fb923c', Pros: '#14b8a6', Rede: '#22c55e', PTB: '#111827', AGIR: '#38bdf8', DC: '#9333ea', PCB: '#991b1b', PCO: '#7f1d1d', PMB: '#ec4899', PMN: '#f43f5e', PRTB: '#0ea5e9', PSTU: '#dc2626', UP: '#fde047'
+    };
+
+    function aggregateVotesByParty(candidates) {
+      const totals = {};
+      candidates.forEach(item => {
+        totals[item.party] = (totals[item.party] || 0) + item.votes;
+      });
+      return Object.entries(totals)
+        .map(([party, votes]) => ({ party, votes }))
+        .sort((a, b) => b.votes - a.votes || a.party.localeCompare(b.party, 'pt-BR'));
+    }
+
+    const votesByParty = aggregateVotesByParty(federalDeputyCandidates);
+
+    function buildGovernorElectorateByParty() {
+      const totals = {};
+      Object.entries(governorFirstTurnWinners).forEach(([uf, item]) => {
+        if (!item || !item.firstTurn) return;
+        const electorate = electorateByUF[uf] || 0;
+        if (!totals[item.party]) totals[item.party] = { party: item.party, electorate: 0, states: [] };
+        totals[item.party].electorate += electorate;
+        totals[item.party].states.push(uf);
+      });
+      return Object.values(totals).sort((a, b) => b.electorate - a.electorate || a.party.localeCompare(b.party, 'pt-BR'));
+    }
+
+    const governorElectorateByParty = buildGovernorElectorateByParty();
+
+    function buildGovernorRunoffElectorateRow() {
+      const runoffStates = Object.entries(governorFirstTurnWinners)
+        .filter(([, item]) => item && !item.firstTurn)
+        .map(([uf]) => uf)
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+      const runoffElectorate = {
+        AP: 547448,
+        CE: 6552942,
+        MG: 16366920,
+        PA: 6135890,
+        PB: 3091376,
+        PE: 6946442,
+        RJ: 13033629,
+        RN: 2554356,
+        RS: 8740718,
+        SC: 5434891,
+        SE: 1588435,
+        SP: 34573050
+      };
+
+      const total = runoffStates.reduce((sum, uf) => sum + (runoffElectorate[uf] || 0), 0);
+
+      return {
+        party: 'Disputam 2º turno',
+        electorate: total,
+        states: runoffStates
+      };
+    }
+
+    const governorRunoffElectorateRow = buildGovernorRunoffElectorateRow();
+
+    let currentLegislativeTab = 'chamber';
+    let mainLegislativeChart = null;
+    let votesByPartyChart = null;
+    let governorsByPartyChart = null;
+    let assemblyPieChart = null;
+    let abstentionHistoryChart = null;
+
+    function formatNumberBR(value) {
+      return new Intl.NumberFormat('pt-BR').format(value);
+    }
+
+    function getPercentage(value, total) {
+      return ((value / total) * 100).toFixed(1).replace('.', ',') + '%';
+    }
+
+    function renderLegislativeTabs() {
+      const container = document.getElementById('legislativeTabs');
+      if (!container) return;
+      container.innerHTML = legislativeTabs.map(option => `
+        <button class="filter-chip ${option.id === currentLegislativeTab ? 'active' : ''}" data-legislative="${option.id}">${option.label}</button>
+      `).join('');
+      container.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+          currentLegislativeTab = button.dataset.legislative;
+          renderLegislativeTabs();
+          renderFederalTable();
+          renderMainLegislativeChart();
+        });
+      });
+    }
+
+    function renderFederalTable() {
+      const tbody = document.getElementById('federalSeatsTable');
+      if (!tbody) return;
+      const config = legislativeDataMap[currentLegislativeTab];
+      const total = config.totalSeats;
+      const title = document.getElementById('legislativeCardTitle');
+      const text = document.getElementById('legislativeCardText');
+      const note = document.getElementById('legislativeFooterNote');
+      if (title) title.textContent = `Cadeiras por partido — ${config.label}`;
+      if (text) text.textContent = 'Distribuição partidária e % do total.';
+      if (note) note.textContent = currentLegislativeTab === 'chamber'
+        ? 'Aba atual: Câmara dos Deputados. A lista inclui todos os partidos representados.'
+        : 'Aba atual: Senado Federal. A distribuição abaixo ajuda a visualizar o equilíbrio partidário.';
+      tbody.innerHTML = config.items.map(item => `
+        <tr>
+          <td>${item.party}</td>
+          <td>${item.seats}</td>
+          <td class="muted">${getPercentage(item.seats, total)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderMainLegislativeChart() {
+      const canvas = document.getElementById('federalSeatsChart');
+      if (!canvas) return;
+      const config = legislativeDataMap[currentLegislativeTab];
+      const title = document.getElementById('mainLegislativeChartTitle');
+      const text = document.getElementById('mainLegislativeChartText');
+      if (title) title.textContent = `Cadeiras por partido — ${config.label}`;
+      if (text) text.textContent = currentLegislativeTab === 'chamber'
+        ? 'Gráfico mostra o partido dominante e a distribuição de cadeiras dos deputados.'
+        : 'Gráfico mostra o partido dominante e a distribuição de cadeiras dos senadores.';
+
+      const ctx = canvas.getContext('2d');
+      const parentWidth = canvas.parentElement.clientWidth || 1000;
+      const width = parentWidth;
+      const height = 460;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      const rows = currentLegislativeTab === 'chamber' ? 10 : 6;
+      const weights = Array.from({ length: rows }, (_, i) => 1 + (rows - i) * 0.18);
+      const weightSum = weights.reduce((s, v) => s + v, 0);
+      const allocated = weights.map(v => Math.max(1, Math.round(v / weightSum * config.totalSeats)));
+      let diff = config.totalSeats - allocated.reduce((s, v) => s + v, 0);
+      let i = 0;
+      while (diff !== 0) {
+        const idx = i % allocated.length;
+        if (diff > 0) { allocated[idx] += 1; diff -= 1; }
+        else if (allocated[idx] > 1) { allocated[idx] -= 1; diff += 1; }
+        i += 1;
+      }
+
+      const seatColors = [];
+      config.items.forEach(item => {
+        for (let j = 0; j < item.seats; j++) seatColors.push(partyColors[item.party] || '#f97316');
+      });
+
+      const centerX = width / 2;
+      const centerY = height - 16;
+      const outerRadius = Math.min(width * 0.42, 290);
+      const innerRadius = currentLegislativeTab === 'chamber' ? outerRadius * 0.42 : outerRadius * 0.5;
+      const step = (outerRadius - innerRadius) / Math.max(1, rows - 1);
+      const dotRadius = currentLegislativeTab === 'chamber' ? 5.5 : 8;
+
+      let colorIndex = 0;
+      for (let row = 0; row < rows; row++) {
+        const seatsInRow = allocated[row];
+        const radius = outerRadius - row * step;
+        for (let seat = 0; seat < seatsInRow; seat++) {
+          const angle = Math.PI + (Math.PI * seat / Math.max(1, seatsInRow - 1));
+          const x = centerX + Math.cos(angle) * radius;
+          const y = centerY + Math.sin(angle) * radius;
+          ctx.beginPath();
+          ctx.fillStyle = seatColors[colorIndex] || '#cbd5e1';
+          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+          ctx.fill();
+          colorIndex += 1;
+        }
+      }
+    }
+
+    function createVotesByPartyChart() {
+      const canvas = document.getElementById('votesByPartyChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (votesByPartyChart) votesByPartyChart.destroy();
+      votesByPartyChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: votesByParty.map(item => item.party),
+          datasets: [{
+            label: 'Votos para deputado federal',
+            data: votesByParty.map(item => item.votes),
+            backgroundColor: votesByParty.map(item => partyColors[item.party] || '#f97316'),
+            borderRadius: 8
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: { color: '#94a3b8', callback: (value) => formatNumberBR(value) },
+              grid: { color: 'rgba(15,23,42,0.08)' }
+            },
+            y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    async function renderGovernorsMap() {
+      const container = document.getElementById('governorsMap');
+      if (!container || typeof d3 === 'undefined') return;
+      container.innerHTML = '<div style="color:#64748b; text-align:center; padding:24px 0;">Carregando mapa do Brasil...</div>';
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/giuliano-macedo/geodata-br-states/main/geojson/br_states.json');
+        const geojson = await response.json();
+        const getUF = (feature) => {
+          const props = feature.properties || {};
+          return props.sigla || props.uf || props.UF || props.code || props.id || feature.id || '';
+        };
+        geojson.features = geojson.features.map(feature => ({ ...feature, id: getUF(feature) }));
+        const width = 860;
+        const height = 900;
+        const svg = d3.create('svg').attr('class', 'brazil-map-svg').attr('viewBox', `0 0 ${width} ${height}`);
+        const projection = d3.geoMercator().fitSize([width, height - 40], geojson);
+        const path = d3.geoPath(projection);
+
+        svg.append('g').selectAll('path').data(geojson.features).join('path')
+          .attr('class', 'map-state-shape')
+          .attr('d', path)
+          .attr('fill', d => {
+            const item = governorFirstTurnWinners[d.id];
+            return item && item.firstTurn ? (partyColors[item.party] || '#94a3b8') : '#cbd5e1';
+          })
+          .append('title')
+          .text(d => {
+            const item = governorFirstTurnWinners[d.id];
+            if (!item) return d.id;
+            return item.firstTurn ? `${d.id} — eleito no 1º turno (${item.party})` : `${d.id} — foi ao 2º turno`;
+          });
+
+        svg.append('g').selectAll('text').data(geojson.features).join('text')
+          .attr('x', d => path.centroid(d)[0])
+          .attr('y', d => path.centroid(d)[1])
+          .attr('class', d => {
+            const item = governorFirstTurnWinners[d.id];
+            return item && item.firstTurn ? 'map-state-label light' : 'map-state-label';
+          })
+          .style('font-size', d => ['DF','SE','AL','RN','PB','PE','ES','RJ','AP'].includes(d.id) ? '12px' : '16px')
+          .text(d => d.id);
+
+        const partiesInMap = Array.from(new Set(Object.values(governorFirstTurnWinners).filter(item => item.firstTurn).map(item => item.party))).sort();
+        container.innerHTML = '';
+        container.appendChild(svg.node());
+        const legend = document.createElement('div');
+        legend.className = 'map-legend';
+        legend.innerHTML = `${partiesInMap.map(party => `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${partyColors[party] || '#94a3b8'}"></span>${party}</div>`).join('')}<div class="map-legend-item"><span class="map-legend-swatch" style="background:#cbd5e1"></span>2º turno</div>`;
+        container.appendChild(legend);
+      } catch (error) {
+        container.innerHTML = '<div style="color:#64748b; text-align:center; padding:24px 0;">Não foi possível carregar o mapa.</div>';
+        console.error(error);
+      }
+    }
+
+    function createGovernorsByPartyChart() {
+      const canvas = document.getElementById('governorsByPartyChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const runoffHighlight = document.getElementById('governorsRunoffHighlight');
+      if (runoffHighlight) runoffHighlight.textContent = `${governorsRunoffCount} Estados ainda vão eleger governadores no 2º turno.`;
+      if (governorsByPartyChart) governorsByPartyChart.destroy();
+      governorsByPartyChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: governorsByParty.map(item => item.party),
+          datasets: [{
+            label: 'Governadores eleitos no 1º turno',
+            data: governorsByParty.map(item => item.value),
+            backgroundColor: governorsByParty.map(item => partyColors[item.party] || '#f97316'),
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: '#94a3b8', precision: 0 }, grid: { color: 'rgba(15,23,42,0.08)' } }
+          }
+        }
+      });
+    }
+
+    function renderGovernorElectorateTable() {
+      const tbody = document.getElementById('governorElectorateTableBody');
+      if (!tbody) return;
+      const electorateRows = [...governorElectorateByParty, governorRunoffElectorateRow];
+      const maxElectorate = electorateRows.reduce((max, item) => Math.max(max, item.electorate), 1);
+      tbody.innerHTML = electorateRows.map(item => {
+        const width = Math.max(8, Math.round((item.electorate / maxElectorate) * 120));
+        return `
+        <tr>
+          <td>${item.party}</td>
+          <td style="padding-right: 2px; white-space: nowrap; width: 180px;">${formatNumberBR(item.electorate)}</td>
+          <td style="padding-left: 0; padding-right: 0; width: 86px; text-align: left;">
+            <div class="mini-bar-track">
+              <div class="mini-bar-fill" style="width:${width}px; background:${partyColors[item.party] || (item.party === 'Disputam 2º turno' ? '#94a3b8' : '#1d4ed8')}"></div>
+            </div>
+          </td>
+          <td class="muted" style="padding-left: 14px;">${item.states.join(', ')}</td>
+        </tr>
+      `;
+      }).join('');
+    }
+
+    function getAssemblyRows(uf) {
+      const selected = assemblyDataByUF[uf];
+      const total = selected.seats;
+      return Object.entries(selected.parties)
+        .map(([party, seats]) => ({ party, seats, percentage: getPercentage(seats, total) }))
+        .sort((a, b) => b.seats - a.seats || a.party.localeCompare(b.party, 'pt-BR'));
+    }
+
+    function renderAssemblySelector() {
+      const select = document.getElementById('assemblySelect');
+      if (!select) return;
+      select.innerHTML = Object.entries(assemblyDataByUF)
+        .sort((a, b) => a[1].name.localeCompare(b[1].name, 'pt-BR'))
+        .map(([uf, data]) => `<option value="${uf}" ${uf === 'SP' ? 'selected' : ''}>${data.name} (${uf})</option>`)
+        .join('');
+      select.addEventListener('change', (event) => renderAssemblySection(event.target.value));
+    }
+
+    function renderAssemblySection(uf = 'SP') {
+      const selected = assemblyDataByUF[uf];
+      if (!selected) return;
+      const rows = getAssemblyRows(uf);
+      const tbody = document.getElementById('assemblyTableBody');
+      const chartTitle = document.getElementById('assemblyChartTitle');
+      const chartText = document.getElementById('assemblyChartText');
+      const tableTitle = document.getElementById('assemblyTableTitle');
+      const tableText = document.getElementById('assemblyTableText');
+      const footerNote = document.getElementById('assemblyFooterNote');
+      if (chartTitle) chartTitle.textContent = `Composição partidária — ${selected.name}`;
+      if (chartText) chartText.textContent = `${selected.type} de ${selected.name} com ${selected.seats} cadeiras.`;
+      if (tableTitle) tableTitle.textContent = `Partidos eleitos — ${selected.name}`;
+      if (tableText) tableText.textContent = `Quantidade de deputados ${uf === 'DF' ? 'distritais' : 'estaduais'} eleitos por partido.`;
+      if (footerNote) footerNote.textContent = `${selected.type} de ${selected.name}: ${selected.seats} cadeiras no total.`;
+      if (tbody) tbody.innerHTML = rows.map(item => `
+        <tr>
+          <td>${item.party}</td>
+          <td>${item.seats}</td>
+          <td class="muted">${item.percentage}</td>
+        </tr>
+      `).join('');
+
+      const canvas = document.getElementById('stateAssemblyPieChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (assemblyPieChart) assemblyPieChart.destroy();
+      assemblyPieChart = new Chart(canvas, {
+        type: 'pie',
+        data: {
+          labels: rows.map(item => item.party),
+          datasets: [{
+            data: rows.map(item => item.seats),
+            backgroundColor: rows.map(item => partyColors[item.party] || '#94a3b8'),
+            borderColor: '#ffffff',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#64748b', boxWidth: 14, padding: 14 } }
+          }
+        }
+      });
+    }
+
+    function createAbstentionHistoryChart() {
+      const canvas = document.getElementById('abstentionHistoryChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (abstentionHistoryChart) abstentionHistoryChart.destroy();
+      abstentionHistoryChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: presidentialAbstentionHistory.map(item => item.year),
+          datasets: [
+            {
+              label: '1º turno',
+              data: presidentialAbstentionHistory.map(item => item.firstTurn),
+              borderColor: 'rgba(11, 74, 139, 1)',
+              backgroundColor: 'rgba(11, 74, 139, 0.12)',
+              pointBackgroundColor: 'rgba(11, 74, 139, 1)',
+              pointRadius: 4,
+              tension: 0.25
+            },
+            {
+              label: '2º turno',
+              data: presidentialAbstentionHistory.map(item => item.secondTurn),
+              borderColor: 'rgba(249, 115, 22, 1)',
+              backgroundColor: 'rgba(249, 115, 22, 0.12)',
+              pointBackgroundColor: 'rgba(249, 115, 22, 1)',
+              pointRadius: 4,
+              tension: 0.25,
+              spanGaps: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { color: '#64748b' } } },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { beginAtZero: true, suggestedMax: 25, ticks: { color: '#94a3b8', callback: value => `${value}%` }, grid: { color: 'rgba(15,23,42,0.08)' } }
+          }
+        }
+      });
+    }
+
+    function initDashboard() {
+      renderLegislativeTabs();
+      renderFederalTable();
+      renderMainLegislativeChart();
+      createVotesByPartyChart();
+      renderGovernorsMap();
+      createGovernorsByPartyChart();
+      renderGovernorElectorateTable();
+      renderAssemblySelector();
+      renderAssemblySection('SP');
+      createAbstentionHistoryChart();
+    }
+
+    window.addEventListener('load', initDashboard);
+    window.addEventListener('resize', () => {
+      renderMainLegislativeChart();
+    });
+  </script>
+</body>
+</html>
