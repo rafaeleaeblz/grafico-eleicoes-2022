@@ -358,8 +358,9 @@
           <thead>
             <tr>
               <th>Partido</th>
-              <th>Cadeiras</th>
-              <th>Participação</th>
+              <th>Cadeiras 2018</th>
+                <th>Cadeiras 2022</th>
+                <th>Variação 2022-2018</th>
             </tr>
           </thead>
           <tbody id="federalSeatsTable"></tbody>
@@ -367,11 +368,12 @@
         <p class="footer-note" id="legislativeFooterNote">Aba inicial: Câmara dos Deputados. Você pode alternar para Senado no seletor acima.</p>
       </section>
 
-      <h2 class="section-title">2. Deputados federais</h2>
+      <h2 class="section-title">2. Votos por partido</h2>
       <section class="chart-card">
-        <h3 class="card-title">Deputados federais</h3>
-        <p class="card-text">
-          Soma dos votos nominais recebidos por todos os candidatos de cada partido para deputado federal em 2022. Números fictícios para demonstração.
+        <h3 class="card-title">Votos por partido</h3>
+        <div class="filters" id="officeTabs"></div>
+        <p class="card-text" id="votesByPartyText">
+          Selecione o cargo para visualizar a soma dos votos por partido em 2022. Números fictícios para demonstração.
         </p>
         <div class="chart-wrap" style="min-height: 900px;">
           <canvas id="votesByPartyChart"></canvas>
@@ -466,49 +468,49 @@
 
   <script>
     const chamberSeats = [
-      { party: 'PL', seats: 99 },
-      { party: 'PT', seats: 68 },
-      { party: 'União', seats: 59 },
-      { party: 'PP', seats: 47 },
-      { party: 'MDB', seats: 42 },
-      { party: 'PSD', seats: 42 },
-      { party: 'Republicanos', seats: 41 },
-      { party: 'PDT', seats: 17 },
-      { party: 'PSB', seats: 14 },
-      { party: 'PSDB', seats: 13 },
-      { party: 'Podemos', seats: 12 },
-      { party: 'PSOL', seats: 12 },
-      { party: 'Avante', seats: 7 },
-      { party: 'PCdoB', seats: 6 },
-      { party: 'PV', seats: 6 },
-      { party: 'PSC', seats: 6 },
-      { party: 'Solidariedade', seats: 5 },
-      { party: 'Patriota', seats: 4 },
-      { party: 'Cidadania', seats: 4 },
-      { party: 'Novo', seats: 3 },
-      { party: 'Pros', seats: 3 },
-      { party: 'Rede', seats: 2 },
-      { party: 'PTB', seats: 1 }
-    ];
+      { party: 'PL', seats2018: 33, seats2022: 99 },
+      { party: 'PT', seats2018: 56, seats2022: 68 },
+      { party: 'União', seats2018: 81, seats2022: 59 },
+      { party: 'PP', seats2018: 38, seats2022: 47 },
+      { party: 'MDB', seats2018: 34, seats2022: 42 },
+      { party: 'PSD', seats2018: 34, seats2022: 42 },
+      { party: 'Republicanos', seats2018: 30, seats2022: 41 },
+      { party: 'PDT', seats2018: 28, seats2022: 17 },
+      { party: 'PSB', seats2018: 32, seats2022: 14 },
+      { party: 'PSDB', seats2018: 29, seats2022: 13 },
+      { party: 'Podemos', seats2018: 11, seats2022: 12 },
+      { party: 'PSOL', seats2018: 10, seats2022: 12 },
+      { party: 'Avante', seats2018: 7, seats2022: 7 },
+      { party: 'PCdoB', seats2018: 8, seats2022: 6 },
+      { party: 'PV', seats2018: 4, seats2022: 6 },
+      { party: 'PSC', seats2018: 9, seats2022: 6 },
+      { party: 'Solidariedade', seats2018: 13, seats2022: 5 },
+      { party: 'Patriota', seats2018: 5, seats2022: 4 },
+      { party: 'Cidadania', seats2018: 8, seats2022: 4 },
+      { party: 'Novo', seats2018: 8, seats2022: 3 },
+      { party: 'Pros', seats2018: 8, seats2022: 3 },
+      { party: 'Rede', seats2018: 1, seats2022: 2 },
+      { party: 'PTB', seats2018: 10, seats2022: 1 }
+    ].map(item => ({ ...item, seats: item.seats2022 }));
 
     const senateSeats = [
-      { party: 'PL', seats: 13 },
-      { party: 'PSD', seats: 11 },
-      { party: 'MDB', seats: 10 },
-      { party: 'União', seats: 10 },
-      { party: 'PT', seats: 9 },
-      { party: 'PP', seats: 7 },
-      { party: 'PSB', seats: 4 },
-      { party: 'PSDB', seats: 4 },
-      { party: 'PDT', seats: 3 },
-      { party: 'Podemos', seats: 3 },
-      { party: 'Republicanos', seats: 3 },
-      { party: 'Novo', seats: 1 },
-      { party: 'PSC', seats: 1 },
-      { party: 'PSL', seats: 1 },
-      { party: 'PTB', seats: 1 },
-      { party: 'Rede', seats: 1 }
-    ];
+      { party: 'PL', seats2018: 4, seats2022: 13 },
+      { party: 'PSD', seats2018: 7, seats2022: 11 },
+      { party: 'MDB', seats2018: 12, seats2022: 10 },
+      { party: 'União', seats2018: 12, seats2022: 10 },
+      { party: 'PT', seats2018: 6, seats2022: 9 },
+      { party: 'PP', seats2018: 6, seats2022: 7 },
+      { party: 'PSB', seats2018: 2, seats2022: 4 },
+      { party: 'PSDB', seats2018: 8, seats2022: 4 },
+      { party: 'PDT', seats2018: 4, seats2022: 3 },
+      { party: 'Podemos', seats2018: 11, seats2022: 3 },
+      { party: 'Republicanos', seats2018: 1, seats2022: 3 },
+      { party: 'Novo', seats2018: 0, seats2022: 1 },
+      { party: 'PSC', seats2018: 1, seats2022: 1 },
+      { party: 'PSL', seats2018: 4, seats2022: 1 },
+      { party: 'PTB', seats2018: 1, seats2022: 1 },
+      { party: 'Rede', seats2018: 5, seats2022: 1 }
+    ].map(item => ({ ...item, seats: item.seats2022 }));
 
     const legislativeDataMap = {
       chamber: { label: 'Câmara', fullLabel: 'Câmara dos Deputados', totalSeats: 513, items: chamberSeats },
@@ -547,6 +549,14 @@
       { party: 'AGIR', votes: 180000 }, { party: 'AGIR', votes: 120000 },
       { party: 'DC', votes: 170000 }, { party: 'DC', votes: 110000 },
       { party: 'PCB', votes: 85000 }, { party: 'PCO', votes: 28000 }, { party: 'PMB', votes: 145000 }, { party: 'PMN', votes: 132000 }, { party: 'PRTB', votes: 126000 }, { party: 'PSTU', votes: 47000 }, { party: 'UP', votes: 52000 }
+    ];
+
+    const officeTabs = [
+      { id: 'federal_deputy', label: 'Deputado federal' },
+      { id: 'state_deputy', label: 'Deputado estadual + distrital' },
+      { id: 'senator', label: 'Senador' },
+      { id: 'governor', label: 'Governador' },
+      { id: 'president', label: 'Presidente' }
     ];
 
     const governorsByParty = [
@@ -633,7 +643,59 @@
         .sort((a, b) => b.votes - a.votes || a.party.localeCompare(b.party, 'pt-BR'));
     }
 
-    const votesByParty = aggregateVotesByParty(federalDeputyCandidates);
+    const votesByPartyByOffice = {
+      federal_deputy: aggregateVotesByParty(federalDeputyCandidates),
+      state_deputy: [
+        { party: 'PL', votes: 27800000 },
+        { party: 'PT', votes: 24100000 },
+        { party: 'MDB', votes: 17100000 },
+        { party: 'PSD', votes: 16600000 },
+        { party: 'União', votes: 15900000 },
+        { party: 'PP', votes: 15100000 },
+        { party: 'Republicanos', votes: 12700000 },
+        { party: 'PSB', votes: 9800000 },
+        { party: 'PDT', votes: 9500000 },
+        { party: 'PSDB', votes: 7200000 },
+        { party: 'Podemos', votes: 4300000 },
+        { party: 'PSOL', votes: 3500000 }
+      ],
+      senator: [
+        { party: 'PL', votes: 31200000 },
+        { party: 'PT', votes: 22800000 },
+        { party: 'União', votes: 18100000 },
+        { party: 'MDB', votes: 16800000 },
+        { party: 'PSD', votes: 15400000 },
+        { party: 'PP', votes: 14900000 },
+        { party: 'Republicanos', votes: 9800000 },
+        { party: 'PSB', votes: 7600000 },
+        { party: 'PDT', votes: 7200000 },
+        { party: 'PSDB', votes: 6500000 }
+      ],
+      governor: [
+        { party: 'PT', votes: 21400000 },
+        { party: 'PL', votes: 18600000 },
+        { party: 'MDB', votes: 16200000 },
+        { party: 'União', votes: 15800000 },
+        { party: 'PSD', votes: 12100000 },
+        { party: 'PSB', votes: 11700000 },
+        { party: 'Republicanos', votes: 8400000 },
+        { party: 'PP', votes: 6100000 },
+        { party: 'PSDB', votes: 5400000 },
+        { party: 'PDT', votes: 3900000 }
+      ],
+      president: [
+        { party: 'PT', votes: 60000000 },
+        { party: 'PL', votes: 58300000 },
+        { party: 'PDT', votes: 3600000 },
+        { party: 'União', votes: 950000 },
+        { party: 'PTB', votes: 670000 },
+        { party: 'DC', votes: 630000 },
+        { party: 'Novo', votes: 560000 },
+        { party: 'UP', votes: 53000 },
+        { party: 'PCB', votes: 47000 },
+        { party: 'PSTU', votes: 25000 }
+      ]
+    };
 
     function buildGovernorElectorateByParty() {
       const totals = {};
@@ -682,6 +744,7 @@
     const governorRunoffElectorateRow = buildGovernorRunoffElectorateRow();
 
     let currentLegislativeTab = 'chamber';
+    let currentOfficeTab = 'federal_deputy';
     let mainLegislativeChart = null;
     let votesByPartyChart = null;
     let governorsByPartyChart = null;
@@ -721,17 +784,22 @@
       const text = document.getElementById('legislativeCardText');
       const note = document.getElementById('legislativeFooterNote');
       if (title) title.textContent = `Cadeiras por partido — ${config.label}`;
-      if (text) text.textContent = 'Distribuição partidária e % do total.';
+      if (text) text.textContent = 'Distribuição partidária e variação 2022-2018.';
       if (note) note.textContent = currentLegislativeTab === 'chamber'
-        ? 'Aba atual: Câmara dos Deputados. A lista inclui todos os partidos representados.'
-        : 'Aba atual: Senado Federal. A distribuição abaixo ajuda a visualizar o equilíbrio partidário.';
-      tbody.innerHTML = config.items.map(item => `
+        ? 'Aba atual: Câmara dos Deputados. A tabela compara 2018 e 2022.'
+        : 'Aba atual: Senado Federal. A tabela compara 2018 e 2022.';
+      tbody.innerHTML = config.items.map(item => {
+        const diff = item.seats2022 - item.seats2018;
+        const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+        return `
         <tr>
           <td>${item.party}</td>
-          <td>${item.seats}</td>
-          <td class="muted">${getPercentage(item.seats, total)}</td>
+          <td>${item.seats2018}</td>
+          <td>${item.seats2022}</td>
+          <td class="muted">${diffText}</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function renderMainLegislativeChart() {
@@ -799,18 +867,40 @@
       }
     }
 
+    function renderOfficeTabs() {
+      const container = document.getElementById('officeTabs');
+      if (!container) return;
+      container.innerHTML = officeTabs.map(option => `
+        <button class="filter-chip ${option.id === currentOfficeTab ? 'active' : ''}" data-office="${option.id}">${option.label}</button>
+      `).join('');
+      container.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+          currentOfficeTab = button.dataset.office;
+          renderOfficeTabs();
+          renderOfficeTabs();
+      createVotesByPartyChart();
+        });
+      });
+    }
+
     function createVotesByPartyChart() {
       const canvas = document.getElementById('votesByPartyChart');
       if (!canvas || typeof Chart === 'undefined') return;
+      const selected = votesByPartyByOffice[currentOfficeTab] || [];
+      const selectedLabel = officeTabs.find(item => item.id === currentOfficeTab)?.label || 'Deputado federal';
+      const text = document.getElementById('votesByPartyText');
+      if (text) {
+        text.textContent = `Soma dos votos nominais recebidos por partido para ${selectedLabel.toLowerCase()} em 2022. Números fictícios para demonstração.`;
+      }
       if (votesByPartyChart) votesByPartyChart.destroy();
       votesByPartyChart = new Chart(canvas, {
         type: 'bar',
         data: {
-          labels: votesByParty.map(item => item.party),
+          labels: selected.map(item => item.party),
           datasets: [{
-            label: 'Votos para deputado federal',
-            data: votesByParty.map(item => item.votes),
-            backgroundColor: votesByParty.map(item => partyColors[item.party] || '#f97316'),
+            label: `Votos por partido — ${selectedLabel}`,
+            data: selected.map(item => item.votes),
+            backgroundColor: selected.map(item => partyColors[item.party] || '#f97316'),
             borderRadius: 8
           }]
         },
@@ -1064,3 +1154,4 @@
   </script>
 </body>
 </html>
+
